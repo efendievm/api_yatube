@@ -1,27 +1,20 @@
-from rest_framework.exceptions import PermissionDenied
-from rest_framework import viewsets
+from rest_framework import permissions, viewsets
 
 from posts.models import Comment, Group, Post
 from .serializers import CommentSerializer, GroupSerializer, PostSerializer
 
 
-class PerformUpdateMixin():
-    def perform_update(self, serializer):
-        if serializer.instance.author != self.request.user:
-            raise PermissionDenied('Изменение чужого контента запрещено!')
-        serializer.save()
+class IsAuthorAndAuthenticated(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        return obj.author == request.user
 
 
-class PerformDestroyMixin():
-    def perform_destroy(self, instance):
-        if instance.author != self.request.user:
-            raise PermissionDenied('Изменение чужого контента запрещено!')
-        instance.delete()
-
-
-class CommentViewSet(PerformUpdateMixin, PerformDestroyMixin,
-                     viewsets.ModelViewSet):
+class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
+    permission_classes = (IsAuthorAndAuthenticated,)
 
     def get_queryset(self):
         return Comment.objects.filter(post=self.kwargs['post_id'])
@@ -37,10 +30,10 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer
 
 
-class PostViewSet(PerformUpdateMixin, PerformDestroyMixin,
-                  viewsets.ModelViewSet):
+class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
+    permission_classes = (IsAuthorAndAuthenticated,)
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
