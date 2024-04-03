@@ -1,12 +1,10 @@
 from rest_framework import serializers
 
 from posts.models import Comment, Group, Post
+from .mixins import IncludeAuthorMixin
 
 
-class CommentSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(
-        read_only=True, slug_field='username'
-    )
+class CommentSerializer(IncludeAuthorMixin):
     post = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
@@ -20,11 +18,7 @@ class GroupSerializer(serializers.ModelSerializer):
         model = Group
 
 
-class PostSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(
-        read_only=True, slug_field='username'
-    )
-
+class PostSerializer(IncludeAuthorMixin):
     class Meta:
         fields = ('id', 'text', 'author', 'image', 'pub_date', 'group')
         model = Post
